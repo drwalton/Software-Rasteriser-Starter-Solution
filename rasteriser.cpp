@@ -205,18 +205,18 @@ Matrix44f lookAt(const Vec3f from, const Vec3f to, const Vec3f _tmp = Vec3f(0, 1
     // check the LookAt implementation in the Lecture 6: Viewing slides.
 
     Matrix44f camToWorld;
-    Vec3f zaxis = (from - to);
-    zaxis.normalize();
-    Vec3f xaxis = zaxis.crossProduct(_tmp);
-    xaxis.normalize();
-    Vec3f yaxis = xaxis.crossProduct(zaxis);
-    yaxis.normalize();
+    Vec3f forward = (from - to);
+    forward.normalize();
+    Vec3f right = _tmp.crossProduct(forward);
+    right.normalize();
+    Vec3f up = forward.crossProduct(right);
+    up.normalize();
 
     // Create a 4x4 orientation matrix from the right, up, and forward vectors
     Matrix44f orientation = {
-       xaxis.x, yaxis.x, zaxis.x, 0,
-       xaxis.y, yaxis.y, zaxis.y, 0,
-       xaxis.z, yaxis.z, zaxis.z, 0,
+       right.x, right.y, right.z, 0,
+       up.x, up.y, up.z, 0,
+       forward.x, forward.y, forward.z, 0,
        0,0,0,1
     };
 
@@ -224,17 +224,18 @@ Matrix44f lookAt(const Vec3f from, const Vec3f to, const Vec3f _tmp = Vec3f(0, 1
     // The eye position is negated which is equivalent
     // to the inverse of the translation matrix. 
     Matrix44f translation = {
-        1,0,0,from.x,
-        0,1,0,from.y,
-        0,0,1,from.z,
-        0,0,0,1
+        1,0,0,0,
+        0,1,0,0,
+        0,0,1,0,
+        from.x,from.y,from.z,1
     };
 
     // Combine the orientation and translation to compute 
     // the final view matrix. Note that the order of 
     // multiplication is reversed because the matrices
     // are already inverted.
-    return (translation * orientation);
+    //return (translation * orientation);
+    return (orientation * translation);
     //return (translation * orientation);
 }
 
@@ -300,17 +301,17 @@ int main(int argc, char **argv)
         // A stub of this method is within this code and guidance on implementing it is here:
         // https://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/lookat-function
         // For eye, target and up Vec3's you should be able to return a cameraToWorld matrix to invert for a worldToCamera matrix:
-        Vec3f eye(0.f, 1.f, 3.f);
+        Vec3f eye(4.f, 0.f, 0.f);
         Vec3f target(0.f, 0.0f, 0.f);
         Vec3f up(0.f, 1.f, 0.f);
         // worldToCamera = lookAt(eye, target, up).inverse();
         // now implement the lookAt() method!
-        worldToCamera = lookAt(eye, target, up).inverse();
+        //worldToCamera = lookAt(eye, target, up).inverse();
 
         // TASK 6 
         // Implement the Arcball Camera to replace Vec3f eye(0.f, 1.f, 3.f); with Vec3f eye(camX, camY, camZ); computed each frame
         // for increments of camAngleX, starting at 0.0f and resetting after incrementing past 360 degrees. 
-        angle += 0.01f;
+        angle += 0.101f;
         while (angle > 2.0 * M_PI) angle -= 2.0f * M_PI;
         eye = Vec3f(dist * sinf(angle), 0.f, dist * cosf(angle));
         worldToCamera = lookAt(eye, target, up).inverse();
@@ -318,9 +319,9 @@ int main(int argc, char **argv)
         // Outer loop - For every face in the model (would eventually need to be amended to be for every face in every model)
         for (uint32_t i = 0; i < model->nfaces(); ++i) {
             // v0, v1 and v2 store the vertex positions of every vertex of the 3D model
-            const Vec3f& v0 = model->vert(model->face(i)[0]);
-            const Vec3f& v1 = model->vert(model->face(i)[1]);
-            const Vec3f& v2 = model->vert(model->face(i)[2]);
+            const Vec3f& v0 = model->vert(model->face(i)[0]);// + Vec3f(0, 0, -3);
+            const Vec3f& v1 = model->vert(model->face(i)[1]);// +Vec3f(0, 0, -3);
+            const Vec3f& v2 = model->vert(model->face(i)[2]);// + Vec3f(0, 0, -3);
 
             // Convert the vertices of the triangle to raster space - you will need to implement convertToRaster()
             Vec3f v0Raster, v1Raster, v2Raster;
@@ -367,9 +368,9 @@ int main(int argc, char **argv)
                 for (uint32_t x = x0; x <= x1; ++x) {
                     Vec3f pixelSample(x + 0.5, y + 0.5, 0); // You could use multiple pixel samples for antialiasing!!
                     // Calculate the area of the subtriangles for barycentric coordinates
-                    float w0 = edgeFunction(v2Raster, v1Raster, pixelSample);
-                    float w1 = edgeFunction(v0Raster, v2Raster, pixelSample);
-                    float w2 = edgeFunction(v1Raster, v0Raster, pixelSample);
+                    float w0 = edgeFunction(v1Raster, v2Raster, pixelSample);
+                    float w1 = edgeFunction(v2Raster, v0Raster, pixelSample);
+                    float w2 = edgeFunction(v0Raster, v1Raster, pixelSample);
                     if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
                         // divide by the area to give us our coefficients
                         w0 /= area;
